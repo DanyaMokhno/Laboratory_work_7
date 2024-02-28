@@ -8,7 +8,7 @@
 #define CLS system("clear")
 #endif
 
-enum len
+enum
 {
     MAX_STR_IN_FILE_LEN = 200,
     MAX_MODEL_NAME_LEN = 30,
