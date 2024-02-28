@@ -379,7 +379,7 @@ void find_element_by_str(Smartphone **storage, int size)
     print_header();
     for (i = 0; i < size; i++)
     {
-        if (!strcmp(string, storage[i]->model) || !strcmp(string, storage[i]->brand))
+        if (!strncmp(string, storage[i]->model, len-1))
         {
             print(storage[i]);
             found = 1;
@@ -387,7 +387,7 @@ void find_element_by_str(Smartphone **storage, int size)
     }
     if (!found)
     {
-        CLS;
+//        CLS;
         printf("sorry, but, smartphone not found😭\n");
     }
     free(string);
@@ -398,14 +398,13 @@ void print(Smartphone *smartphone)
     int i, j, k;
     char *cameras_res;
     char tmp_cam[3];
+
     cameras_res = malloc(smartphone->number_of_cameras * 3 * sizeof(char));
     for (i = 0, j = 0; i < smartphone->number_of_cameras; i++)
     {
         snprintf(tmp_cam, sizeof(tmp_cam), "%d", smartphone->camera_resolution[i]);
         for (k = 0; k < strlen(tmp_cam); k++, j++)
-        {
             cameras_res[j] = tmp_cam[k];
-        }
         if (i < smartphone->number_of_cameras - 1)
         {
             cameras_res[j] = '+';
