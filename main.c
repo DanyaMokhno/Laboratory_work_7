@@ -387,7 +387,7 @@ void find_element_by_str(Smartphone **storage, int size)
     }
     if (!found)
     {
-//        CLS;
+        CLS;
         printf("sorry, but, smartphone not found😭\n");
     }
     free(string);
