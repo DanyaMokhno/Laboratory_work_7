@@ -296,14 +296,20 @@ void menu(Smartphone **storage, int *n, Getters *get_value)
 
 void sort_storage(Smartphone **storage, int size, Getters get_value)
 {
-    int i, j;
+    int gap, i, k;
     Smartphone *tmp;
-    for (i = 1; i < size; i++)
+    for (gap = size / 2; gap > 0; gap /= 2)
     {
-        tmp = storage[i];
-        for (j = i - 1; j >= 0 && get_value(storage[j]) > get_value(tmp); j--)
-            storage[j + 1] = storage[j];
-        storage[j + 1] = tmp;
+        for (i = 0; i < size; i++)
+        {
+            for (k = i; k >= gap && get_value(storage[k - gap]) > get_value(storage[k]); k -= gap)
+            {
+                // Обмен элементов
+                tmp = storage[k];
+                storage[k] = storage[k - gap];
+                storage[k - gap] = tmp;
+            }
+        }
     }
 }
 
