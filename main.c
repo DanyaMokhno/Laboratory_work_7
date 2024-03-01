@@ -31,23 +31,23 @@ typedef float(*Getters)(Smartphone *);
 
 Smartphone **create_storage(int *n, char *source_file_name);
 
-void remove_storage(Smartphone **storage, int size);
-
-char **split(char *str, int length, char sep);
-
-void ClearStringArray(char **str, int n);
-
-void set_values(Smartphone *smartphone, char **str);
-
-void split_camera_resolution(Smartphone *smartphone, char *str);
-
-void menu(Smartphone **storage, int *n, Getters *get_value);
-
-void sort_storage(Smartphone **storage, int size, Getters get_value);
-
 void add_new_position(Smartphone **storage, int *index, FILE *file);
 
 void resize_storage(Smartphone ***storage, int *size);
+
+void set_values(Smartphone *smartphone, char *str);
+
+void split_camera_resolution(Smartphone *smartphone, char *str);
+
+void print_header();
+
+void print(Smartphone *smartphone);
+
+void menu(Smartphone **storage, int *n, Getters *get_value);
+
+void remove_storage(Smartphone **storage, int size);
+
+void sort_storage(Smartphone **storage, int size, Getters get_value);
 
 void find_element_by_str(Smartphone **storage, int size);
 
@@ -63,11 +63,6 @@ float get_weight(Smartphone *smartphone);
 float get_price(Smartphone *smartphone);
 
 float get_camera_resolution(Smartphone *smartphone);
-
-//вывод
-void print_header();
-
-void print(Smartphone *smartphone);
 
 int main()
 {
@@ -94,8 +89,9 @@ int main()
         values[4] = get_price;
         values[5] = get_camera_resolution;
 
+        // запускаем цикл с менюшкой
         menu(Market, &number_of_products, values);
-
+        // удаляем массив структур
         remove_storage(Market, number_of_products);
     } else
     {
@@ -130,97 +126,103 @@ Smartphone **create_storage(int *n, char *source_file_name)
     return 0;
 }
 
-char **split(char *str, int length, char sep)
+void add_new_position(Smartphone **storage, int *index, FILE *file)
 {
-    char **str_array = NULL;
-    int i, j, k, m;
-    int key, count;
-    for (j = 0, m = 0; j < length; j++)
-    {
-        if (str[j] == sep) m++;
-    }
-
-    key = 0;
-    str_array = (char **) malloc((m + 1) * sizeof(char *));
-    if (str_array != NULL)
-    {
-        for (i = 0, count = 0; i <= m; i++, count++)
-        {
-            str_array[i] = (char *) malloc(length * sizeof(char));
-            if (str_array[i] != NULL) key = 1;
-            else
-            {
-                key = 0;
-                i = m;
-            }
-        }
-        if (key)
-        {
-            k = 0;
-            m = 0;
-            for (j = 0; j < length; j++)
-            {
-                if (str[j] != sep) str_array[m][j - k] = str[j];
-                else
-                {
-                    str_array[m][j - k] = '\0';
-                    k = j + 1;
-                    m++;
-                }
-            }
-        } else
-        {
-            ClearStringArray(str_array, count);
-        }
-    }
-    return str_array;
-}
-
-void ClearStringArray(char **str, int n)
-{
+    char tmp_str[MAX_STR_IN_FILE_LEN];
+    int len;
+    int cnt; // counter of ;
     int i;
-
-    for (i = 0; i < n; i++)
+    fgets(tmp_str, MAX_STR_IN_FILE_LEN, file);
+    len = strlen(tmp_str);
+    tmp_str[len - 1] = '\0';
+    for (i = 0, cnt = 0; i < len; i++) if (tmp_str[i] == ';') cnt++;
+    if (cnt == 7)
     {
-        free(str[i]);
-        str[i] = NULL;
+        if (file == stdin) resize_storage(&storage, index); // index incremented
+        storage[*index] = malloc(sizeof(Smartphone));
+        set_values(storage[*index], tmp_str);
+    } else
+    {
+        printf("string is not in the line with format: %s\n", tmp_str);
     }
-    free(str);
-    str = NULL;
 }
 
-void set_values(Smartphone *smartphone, char **str)
+void resize_storage(Smartphone ***storage, int *size)
 {
+    *storage = realloc(*storage, sizeof(Smartphone *) * (*size));
+}
+
+void set_values(Smartphone *smartphone, char *str)
+{
+    char *cameras;
+    cameras = malloc(MAX_MODEL_NAME_LEN * sizeof(char));
     smartphone->model = malloc(sizeof(char) * MAX_MODEL_NAME_LEN);
     smartphone->brand = malloc(sizeof(char) * MAX_MODEL_NAME_LEN);
-    strcpy(smartphone->model, str[0]);
-    strcpy(smartphone->brand, str[1]);
-    smartphone->ram = atoi(str[2]);
-    smartphone->memory = atoi(str[3]);
-    smartphone->screen_size = atof(str[4]);
-    smartphone->weight = atof(str[5]);
-    smartphone->price = atof(str[6]);
-    split_camera_resolution(smartphone, str[7]);
+    sscanf(str, "%[^;];%[^;];%d;%d;%f;%f;%f;%[^;]", smartphone->model, smartphone->brand,
+           &(smartphone->ram), &(smartphone->memory), &(smartphone->screen_size),
+           &(smartphone->weight), &(smartphone->price), cameras);
+    split_camera_resolution(smartphone, cameras);
+    free(cameras);
 }
 
 void split_camera_resolution(Smartphone *smartphone, char *str)
 {
-    int i;
-    char **tmp_str;
+    int i, j, k;
+    char *tmp_str;
     int len;
     int number;
     len = strlen(str);
     for (i = 0, number = 1; i < len; i++) if (str[i] == '+') number++;
-
+    tmp_str = malloc(4 * sizeof(char));
     smartphone->camera_resolution = malloc(sizeof(int) * number);
     if (number != 0)
-        tmp_str = split(str, len, '+');
-
-    for (i = 0; i < number; i++)
-        smartphone->camera_resolution[i] = atoi(tmp_str[i]);
-
+    {
+        for (i = 0, j = 0, k = 0; i <= len; i++, j++)
+        {
+            if (str[i] != '+' && str[i] != '\0')
+            {
+                tmp_str[j] = str[i];
+            } else
+            {
+                smartphone->camera_resolution[k] = atoi(tmp_str);
+                strcpy(tmp_str, "    ");
+                k++;
+                j = -1;
+            }
+        }
+    }
     smartphone->number_of_cameras = number;
-    ClearStringArray(tmp_str, number);
+    free(tmp_str);
+}
+
+void print_header()
+{
+    printf("| %-20s | %-15s | %-5s | %-5s | %-6s | %-7s | %-8s | %-17s |\n",
+           "Model", "Brand", "RAM", "Storage", "Screen", "Weight", "Price", "Camera Resolution");
+}
+
+void print(Smartphone *smartphone)
+{
+    int i, j, k;
+    char *cameras_res;
+    char tmp_cam[4];
+
+    cameras_res = malloc(smartphone->number_of_cameras * 3 * sizeof(char));
+    for (i = 0, j = 0; i < smartphone->number_of_cameras; i++)
+    {
+        snprintf(tmp_cam, sizeof(tmp_cam), "%d", smartphone->camera_resolution[i]);
+        for (k = 0; k < strlen(tmp_cam); k++, j++)
+            cameras_res[j] = tmp_cam[k];
+        if (i < smartphone->number_of_cameras - 1)
+        {
+            cameras_res[j] = '+';
+            j++;
+        }
+    }
+    printf("| %-20s | %-15s | %-3dGB | %-5dGB | %-5.2f\" | %-5.2fg | $%-7.2f | %15smp |\n",
+           smartphone->model, smartphone->brand, smartphone->ram, smartphone->memory,
+           smartphone->screen_size, smartphone->weight, smartphone->price, cameras_res);
+    free(cameras_res);
 }
 
 void menu(Smartphone **storage, int *n, Getters *get_value)
@@ -313,35 +315,6 @@ void sort_storage(Smartphone **storage, int size, Getters get_value)
     }
 }
 
-void add_new_position(Smartphone **storage, int *index, FILE *file)
-{
-    char tmp_str[MAX_STR_IN_FILE_LEN];
-    char **tmp_sep_str;
-    int len;
-    int cnt; // counter of ;
-    int i;
-    fgets(tmp_str, MAX_STR_IN_FILE_LEN, file);
-    len = strlen(tmp_str);
-    tmp_str[len - 1] = '\0';
-    for (i = 0, cnt = 0; i < len; i++) if (tmp_str[i] == ';') cnt++;
-    if (cnt == 7)
-    {
-        if (file == stdin) resize_storage(&storage, index); // index incremented
-        tmp_sep_str = split(tmp_str, len, ';');
-        storage[*index] = malloc(sizeof(Smartphone));
-        set_values((storage[*index]), tmp_sep_str);
-        ClearStringArray(tmp_sep_str, 8);
-    } else
-    {
-        printf("string is not in the line with format: %s", tmp_str);
-    }
-}
-
-void resize_storage(Smartphone ***storage, int *size)
-{
-    *storage = realloc(*storage, sizeof(Smartphone *) * (*size));
-}
-
 float get_ram(Smartphone *smartphone)
 {
     return (float) smartphone->ram;
@@ -369,7 +342,12 @@ float get_price(Smartphone *smartphone)
 
 float get_camera_resolution(Smartphone *smartphone)
 {
-    return (float) smartphone->camera_resolution[0];
+    int i;
+    int max;
+    max = smartphone->camera_resolution[0];
+    for (i = 1; i < smartphone->number_of_cameras; i++)
+        if (smartphone->camera_resolution[i] > max) max = smartphone->camera_resolution[i];
+    return (float) max;
 }
 
 void find_element_by_str(Smartphone **storage, int size)
@@ -385,7 +363,7 @@ void find_element_by_str(Smartphone **storage, int size)
     print_header();
     for (i = 0; i < size; i++)
     {
-        if (!strncmp(string, storage[i]->model, len-1))
+        if (!strncmp(string, storage[i]->model, len - 1))
         {
             print(storage[i]);
             found = 1;
@@ -397,36 +375,6 @@ void find_element_by_str(Smartphone **storage, int size)
         printf("sorry, but, smartphone not found😭\n");
     }
     free(string);
-};
-
-void print(Smartphone *smartphone)
-{
-    int i, j, k;
-    char *cameras_res;
-    char tmp_cam[3];
-
-    cameras_res = malloc(smartphone->number_of_cameras * 3 * sizeof(char));
-    for (i = 0, j = 0; i < smartphone->number_of_cameras; i++)
-    {
-        snprintf(tmp_cam, sizeof(tmp_cam), "%d", smartphone->camera_resolution[i]);
-        for (k = 0; k < strlen(tmp_cam); k++, j++)
-            cameras_res[j] = tmp_cam[k];
-        if (i < smartphone->number_of_cameras - 1)
-        {
-            cameras_res[j] = '+';
-            j++;
-        }
-    }
-    printf("| %-20s | %-15s | %-3dGB | %-5dGB | %-5.2f\" | %-5.2fg | $%-7.2f | %15smp |\n",
-           smartphone->model, smartphone->brand, smartphone->ram, smartphone->memory,
-           smartphone->screen_size, smartphone->weight, smartphone->price, cameras_res);
-    free(cameras_res);
-}
-
-void print_header()
-{
-    printf("| %-20s | %-15s | %-5s | %-5s | %-6s | %-7s | %-8s | %-17s |\n",
-           "Model", "Brand", "RAM", "Storage", "Screen", "Weight", "Price", "Camera Resolution");
 }
 
 void remove_storage(Smartphone **storage, int size)
